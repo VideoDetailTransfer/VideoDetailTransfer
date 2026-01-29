@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+  </Folder>
+  <Project Path="src/App.Core/VideoDetailTransfer.Core.csproj" Id="e2727498-dffa-44f2-a4f4-1fd9ef258fe0" />
+  <Project Path="src/App.Cv/VideoDetailTransfer.Cv.csproj" Id="89756477-ceb2-4751-9465-1cd981429ae2" />
+  <Project Path="src/App.Jobs/VideoDetailTransfer.Jobs.csproj" Id="646e01de-dd34-426d-a312-0fd8cdea43fc" />
+  <Project Path="src/App.Media/VideoDetailTransfer.Media.csproj" Id="43a4483f-09bd-453e-ae4f-55402eaf655b" />
+  <Project Path="src/App.Persistence/VideoDetailTransfer.Persistence.csproj" Id="043c93a8-8c58-4904-86b3-3a262af27221" />
+  <Project Path="src/App.Ui/VideoDetailTransfer.Ui.csproj" />
+  <Project Path="tests/App.Tests/VideoDetailTransfer.Tests.csproj" Id="ad2aed83-8032-4bf5-bbcf-7afb3d8cb493" />
+</Solution>

@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\App.Core\VideoDetailTransfer.Core.csproj" />
+    <ProjectReference Include="..\App.Cv\VideoDetailTransfer.Cv.csproj" />
+    <ProjectReference Include="..\App.Jobs\VideoDetailTransfer.Jobs.csproj" />
+    <ProjectReference Include="..\App.Media\VideoDetailTransfer.Media.csproj" />
+    <ProjectReference Include="..\App.Persistence\VideoDetailTransfer.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>
