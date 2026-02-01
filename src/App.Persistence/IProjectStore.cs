@@ -1,7 +1,9 @@
-﻿namespace VideoDetailTransfer.Persistence;
+﻿using VideoDetailTransfer.Core;
+
+namespace VideoDetailTransfer.Persistence;
 
 public interface IProjectStore
 {
-    Task SaveAsync(string path, object project);
-    Task<T> LoadAsync<T>(string path);
+    Task SaveAsync(string path, Project project);
+    Task<Project> LoadAsync(string path);
 }

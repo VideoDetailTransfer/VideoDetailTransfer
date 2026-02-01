@@ -2,5 +2,5 @@
 
 public sealed record ProjectInfo(
     string Name,
-    string CreatedUtc,
+    DateTime CreatedUtc,
     int SchemaVersion);
