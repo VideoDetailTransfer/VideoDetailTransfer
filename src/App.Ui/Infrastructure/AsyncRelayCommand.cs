@@ -1,6 +1,6 @@
 ﻿using System.Windows.Input;
 
-namespace VideoDetailTransfer.Ui;
+namespace VideoDetailTransfer.Ui.Infrastructure;
 
 public sealed class AsyncRelayCommand : ICommand
 {

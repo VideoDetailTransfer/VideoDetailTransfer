@@ -1,30 +1,30 @@
-﻿// MainViewModel.cs (minimal MVVM, no framework)
-using Microsoft.Win32;
-using System;
+﻿using Microsoft.Win32;
 using System.ComponentModel;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Input;
 using VideoDetailTransfer.Core;
-using VideoDetailTransfer.Persistence;
 using VideoDetailTransfer.Media;
+using VideoDetailTransfer.Persistence;
+using VideoDetailTransfer.Ui.Infrastructure;
 
 namespace VideoDetailTransfer.Ui.ViewModels;
 
 public sealed class MainViewModel : INotifyPropertyChanged
 {
-    private readonly IVideoProbe _videoProbe;
     private readonly IProjectStore _projectStore;
 
+    private IVideoProbe? _videoProbe;
     private Project _project;
-    private string _statusText = "Ready.";
+
+    private string _statusText = "Select ffprobe.exe to begin.";
+    private string _ffprobePath = "";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public MainViewModel(IVideoProbe videoProbe, IProjectStore projectStore)
+    public MainViewModel(IProjectStore projectStore)
     {
-        _videoProbe = videoProbe;
         _projectStore = projectStore;
 
         _project = new Project
@@ -33,16 +33,43 @@ public sealed class MainViewModel : INotifyPropertyChanged
             Paths = new ProjectPaths()
         };
 
-        OpenReferenceCommand = new AsyncRelayCommand(OpenReferenceAsync);
-        OpenTargetCommand = new AsyncRelayCommand(OpenTargetAsync);
+        BrowseFfmpegCommand = new RelayCommand(BrowseForFfprobe);
+
+        OpenReferenceCommand = new AsyncRelayCommand(OpenReferenceAsync, () => CanProbe);
+        OpenTargetCommand = new AsyncRelayCommand(OpenTargetAsync, () => CanProbe);
         SaveProjectCommand = new AsyncRelayCommand(SaveProjectAsync, () => CanSaveProject);
     }
 
     public string Title => "Video Detail Transfer";
 
+    public ICommand BrowseFfmpegCommand { get; }
     public ICommand OpenReferenceCommand { get; }
     public ICommand OpenTargetCommand { get; }
     public ICommand SaveProjectCommand { get; }
+
+    public string FfprobePath
+    {
+        get => _ffprobePath;
+        set
+        {
+            if (_ffprobePath == value) return;
+            _ffprobePath = value ?? "";
+            OnPropertyChanged();
+
+            // If user types/pastes a path, update probe availability.
+            TryUpdateProbeFromPath(_ffprobePath);
+
+            OnPropertyChanged(nameof(CanProbe));
+            RaiseCommandCanExecuteChanges();
+
+            if (CanProbe)
+                StatusText = "Ready.";
+            else if (!string.IsNullOrWhiteSpace(_ffprobePath))
+                StatusText = "ffprobe.exe not found at that path.";
+        }
+    }
+
+    public bool CanProbe => _videoProbe is not null;
 
     public bool CanSaveProject =>
         !string.IsNullOrWhiteSpace(_project.Paths.ReferenceOriginalPath) &&
@@ -60,9 +87,41 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string ReferenceSummary => FormatDescriptor(_project.Videos.ReferenceOriginal, includeWarnings: CanSaveProject);
     public string TargetSummary => FormatDescriptor(_project.Videos.TargetOriginal, includeWarnings: CanSaveProject);
 
+    private void BrowseForFfprobe()
+    {
+        OpenFileDialog dlg = new OpenFileDialog
+        {
+            Title = "Select ffprobe.exe",
+            Filter = "ffprobe.exe|ffprobe.exe|Executables|*.exe|All files|*.*"
+        };
+
+        if (dlg.ShowDialog() == true)
+        {
+            FfprobePath = dlg.FileName; // setter calls TryUpdateProbeFromPath
+        }
+    }
+
+    private void TryUpdateProbeFromPath(string path)
+    {
+        if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
+        {
+            _videoProbe = new FfprobeVideoProbe(path);
+        }
+        else
+        {
+            _videoProbe = null;
+        }
+    }
+
     private async Task OpenReferenceAsync()
     {
-        string? path = PickVideoFile();
+        if (!CanProbe || _videoProbe is null)
+        {
+            StatusText = "Select ffprobe.exe first.";
+            return;
+        }
+
+        string path = PickVideoFile();
         if (path is null) return;
 
         StatusText = "Probing reference…";
@@ -77,10 +136,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(ReferencePath));
             OnPropertyChanged(nameof(ReferenceSummary));
             OnPropertyChanged(nameof(CanSaveProject));
-            (SaveProjectCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+            RaiseCommandCanExecuteChanges();
 
             StatusText = "Reference loaded.";
-            RaiseCompatibilityWarningsIfReady();
+            RefreshWarnings();
         }
         catch (Exception ex)
         {
@@ -90,7 +149,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private async Task OpenTargetAsync()
     {
-        string? path = PickVideoFile();
+        if (!CanProbe || _videoProbe is null)
+        {
+            StatusText = "Select ffprobe.exe first.";
+            return;
+        }
+
+        string path = PickVideoFile();
         if (path is null) return;
 
         StatusText = "Probing target…";
@@ -105,10 +170,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(TargetPath));
             OnPropertyChanged(nameof(TargetSummary));
             OnPropertyChanged(nameof(CanSaveProject));
-            (SaveProjectCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+            RaiseCommandCanExecuteChanges();
 
             StatusText = "Target loaded.";
-            RaiseCompatibilityWarningsIfReady();
+            RefreshWarnings();
         }
         catch (Exception ex)
         {
@@ -118,17 +183,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private async Task SaveProjectAsync()
     {
-        // This is intentionally simple for commit #2:
-        // Save alongside the reference file, under "<refname>.vdt.json"
         if (!CanSaveProject)
         {
             StatusText = "Open both videos first.";
             return;
         }
 
-        string defaultPath = System.IO.Path.Combine(
-            System.IO.Path.GetDirectoryName(_project.Paths.ReferenceOriginalPath) ?? Environment.CurrentDirectory,
-            System.IO.Path.GetFileNameWithoutExtension(_project.Paths.ReferenceOriginalPath) + ".vdt.json");
+        string defaultPath = Path.Combine(
+            Path.GetDirectoryName(_project.Paths.ReferenceOriginalPath) ?? Environment.CurrentDirectory,
+            Path.GetFileNameWithoutExtension(_project.Paths.ReferenceOriginalPath) + ".vdt.json");
 
         StatusText = "Saving project…";
         try
@@ -142,18 +205,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    private void RaiseCompatibilityWarningsIfReady()
+    private void RefreshWarnings()
     {
-        if (_project.Videos.ReferenceOriginal is null || _project.Videos.TargetOriginal is null)
-        {
-            OnPropertyChanged(nameof(ReferenceSummary));
-            OnPropertyChanged(nameof(TargetSummary));
-            return;
-        }
-
-        // Refresh summaries so warnings show.
         OnPropertyChanged(nameof(ReferenceSummary));
         OnPropertyChanged(nameof(TargetSummary));
+    }
+
+    private void RaiseCommandCanExecuteChanges()
+    {
+        (OpenReferenceCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+        (OpenTargetCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+        (SaveProjectCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+        (BrowseFfmpegCommand as RelayCommand)?.RaiseCanExecuteChanged();
     }
 
     private string FormatDescriptor(VideoDescriptor? d, bool includeWarnings)
@@ -196,6 +259,5 @@ public sealed class MainViewModel : INotifyPropertyChanged
         return dlg.ShowDialog() == true ? dlg.FileName : null;
     }
 
-    private void OnPropertyChanged([CallerMemberName] string? name = null)
-        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    private void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }

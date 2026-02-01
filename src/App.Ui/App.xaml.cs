@@ -13,13 +13,9 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // TODO: make these configurable in settings later.
-        string ffprobePath = @"C:\ffmpeg\ffprobe.exe";
-
-        IVideoProbe probe = new FfprobeVideoProbe(ffprobePath);
         IProjectStore store = new JsonProjectStore(); // your implementation in App.Persistence
 
-        MainViewModel viewModel = new MainViewModel(probe, store);
+        MainViewModel viewModel = new MainViewModel(store);
 
         MainWindow window = new MainWindow
         {

@@ -4,32 +4,78 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:local="clr-namespace:VideoDetailTransfer.Ui"
-    Title="{Binding Title}"
-    Width="1100" Height="750"
-    WindowStartupLocation="CenterScreen">
+        Title="{Binding Title}"
+        Width="1100" Height="750"
+        WindowStartupLocation="CenterScreen">
     <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <!-- ffprobe picker -->
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="Auto"/>
+            <!-- top bar -->
             <RowDefinition Height="12"/>
             <RowDefinition Height="*"/>
+            <!-- main content -->
         </Grid.RowDefinitions>
 
+        <!-- FFprobe path row -->
+        <Border Grid.Row="0" BorderBrush="#DDD" BorderThickness="1" CornerRadius="6" Padding="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           VerticalAlignment="Center"
+                           Text="ffprobe.exe:"
+                           FontWeight="SemiBold"/>
+
+                <TextBox Grid.Column="2"
+                         Text="{Binding FfprobePath, UpdateSourceTrigger=PropertyChanged}"
+                         VerticalAlignment="Center"
+                         Margin="0,0,0,0"/>
+
+                <Button Grid.Column="4"
+                        Content="Browse…"
+                        Command="{Binding BrowseFfmpegCommand}"
+                        Padding="12,6"/>
+            </Grid>
+        </Border>
+
         <!-- Top bar -->
-        <DockPanel Grid.Row="0" LastChildFill="False">
+        <DockPanel Grid.Row="2" LastChildFill="False">
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                <Button Content="Open Reference…" Command="{Binding OpenReferenceCommand}" Padding="12,6" Margin="0,0,8,0"/>
-                <Button Content="Open Target…" Command="{Binding OpenTargetCommand}" Padding="12,6" Margin="0,0,8,0"/>
-                <Button Content="Save Project" Command="{Binding SaveProjectCommand}" Padding="12,6" IsEnabled="{Binding CanSaveProject}"/>
+                <Button Content="Open Reference…"
+                        Command="{Binding OpenReferenceCommand}"
+                        IsEnabled="{Binding CanProbe}"
+                        Padding="12,6"
+                        Margin="0,0,8,0"/>
+
+                <Button Content="Open Target…"
+                        Command="{Binding OpenTargetCommand}"
+                        IsEnabled="{Binding CanProbe}"
+                        Padding="12,6"
+                        Margin="0,0,8,0"/>
+
+                <Button Content="Save Project"
+                        Command="{Binding SaveProjectCommand}"
+                        Padding="12,6"
+                        IsEnabled="{Binding CanSaveProject}"/>
             </StackPanel>
 
             <TextBlock DockPanel.Dock="Right"
-                    VerticalAlignment="Center"
-                    Foreground="Gray"
-                    Text="{Binding StatusText}"/>
+                       VerticalAlignment="Center"
+                       Foreground="Gray"
+                       Text="{Binding StatusText}"/>
         </DockPanel>
 
         <!-- Main content -->
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="4">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="12"/>
@@ -46,9 +92,9 @@
 
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <TextBlock Text="{Binding ReferenceSummary}"
-                                FontFamily="Consolas"
-                                FontSize="13"
-                                TextWrapping="Wrap"/>
+                                   FontFamily="Consolas"
+                                   FontSize="13"
+                                   TextWrapping="Wrap"/>
                     </ScrollViewer>
                 </DockPanel>
             </Border>
@@ -63,9 +109,9 @@
 
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <TextBlock Text="{Binding TargetSummary}"
-                                FontFamily="Consolas"
-                                FontSize="13"
-                                TextWrapping="Wrap"/>
+                                   FontFamily="Consolas"
+                                   FontSize="13"
+                                   TextWrapping="Wrap"/>
                     </ScrollViewer>
                 </DockPanel>
             </Border>
